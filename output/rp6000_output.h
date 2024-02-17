@@ -27,11 +27,23 @@ namespace esphome
         if (std::find(this->possible_values_.begin(), this->possible_values_.end(), state) != this->possible_values_.end())
         {
           ESP_LOGD(TAG, "Will write: %s out of value %f / %02.0f", tmp, state, state);
-          this->parent_->write_line(tmp);
+          if (!this->parent_->write_line(tmp)){
+            ESP_LOGE(TAG, "Failed to issue command to inverter");
+            return;
+          }
+
+          std::vector<uint8_t> inverter_reply;
+          if (!this->parent_->read_line(inverter_reply))
+          {
+              ESP_LOGE(TAG, "No reply from inverter");
+              return;
+          }
+
+          // TODO: check reply to be 'ACK'
         }
         else
         {
-          ESP_LOGD(TAG, "Will not write: %s as it is not in list of allowed values", tmp);
+          ESP_LOGE(TAG, "Will not write: %s as it is not in list of allowed values", tmp);
         }
       }
       std::string set_command_;

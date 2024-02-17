@@ -2,6 +2,7 @@
 
 #include "esphome/components/uart/uart.h"
 #include "esphome/core/component.h"
+#include "esphome/core/helpers.h"
 
 #define TAG "RP6000"
 
@@ -21,8 +22,12 @@ namespace esphome
 
             void updateStatus()
             {
+
                 ESP_LOGD(TAG, "Requesting status from RP6000");
-                write_line("Q6\r\n");
+                if (!write_line("Q6\r\n"))
+                {
+                    return;
+                }
 
                 std::vector<uint8_t> inverter_reply;
                 if (!read_line(inverter_reply))
@@ -43,7 +48,7 @@ namespace esphome
 
                 if (parts.size() < 14)
                 {
-                    ESP_LOGE(TAG, "Invalid reply from inverter");
+                    ESP_LOGE(TAG, "Invalid reply from inverter: %s", format_hex_pretty(inverter_reply).c_str());
                     return;
                 }
 
@@ -133,18 +138,29 @@ namespace esphome
             uint16_t load_percentage = 0;
             float temperature = 0;
 
+            uint32_t last_sent_command = 0;
+
             bool write_line(const char *str)
             {
-                digitalWrite(5, HIGH);
-                write_str(str);
-                this->flush();
-                digitalWrite(5, LOW);
-                return true;
+                if (reply_pending_mutex_.try_lock())
+                {
+                    digitalWrite(5, HIGH);
+                    write_str(str);
+                    this->flush();
+                    digitalWrite(5, LOW);
+
+                    return true;
+                }
+                else
+                {
+                    ESP_LOGW(TAG, "Cannot send command, another command is still pending");
+                    return false;
+                }
             }
 
             bool read_line(std::vector<uint8_t> &reply, uint16_t timeout = 100)
             {
-                auto start_at = millis();
+                uint32_t start_at = millis();
                 while (millis() - start_at < timeout && !this->available())
                 {
                 }
@@ -152,6 +168,7 @@ namespace esphome
                 if (!this->available())
                 {
                     ESP_LOGW(TAG, "Timeout while waiting for data");
+                    this->reply_pending_mutex_.unlock();
                     return false;
                 }
 
@@ -163,7 +180,13 @@ namespace esphome
 
                     if (data == '\n' || data == '\r')
                     {
-
+                        // Consume any leftover data
+                        while (this->available() > 0)
+                        {
+                            this->read_byte(&data);
+                        }
+                        
+                        this->reply_pending_mutex_.unlock();
                         return true;
                     }
 
@@ -173,6 +196,7 @@ namespace esphome
                 ESP_LOGW(TAG, "Invalid data read from inverter: %s", format_hex_pretty(reply).c_str());
 
                 reply.clear();
+                this->reply_pending_mutex_.unlock();
                 return false;
             }
 
@@ -258,6 +282,8 @@ namespace esphome
 
                 return true;
             }
+
+            Mutex reply_pending_mutex_;
         };
 
     } // namespace rp6000

@@ -13,7 +13,7 @@ namespace esphome
         class RP6000Sensor : public PollingComponent
         {
         public:
-            RP6000Sensor() : PollingComponent(5000)
+            RP6000Sensor() : PollingComponent(10000)
             {
             }
 

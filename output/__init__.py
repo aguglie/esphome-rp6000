@@ -16,8 +16,8 @@ CONF_CURRENT_MAX_CHARGING_CURRENT = "current_max_charging_current"
 CONF_OUTPUT_SOURCE_PRIORITY = "output_source_priority"
 
 TYPES = {
-    CONF_CURRENT_MAX_CHARGING_CURRENT: ([0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50], "SSD%03.0f"),
-    CONF_OUTPUT_SOURCE_PRIORITY: ([0, 1], "SSa%01.0f"),
+    CONF_CURRENT_MAX_CHARGING_CURRENT: ([i for i in range(0, 50 + 1)], "SSD%02.0f0\r\n"),
+    CONF_OUTPUT_SOURCE_PRIORITY: ([0, 1], "SSa%01.0f\r\n"),
 }
 
 CONFIG_SCHEMA = RP6000_COMPONENT_SCHEMA.extend(
