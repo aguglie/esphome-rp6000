@@ -1,0 +1,101 @@
+esphome:
+  name: offgrid_controller
+  platform: ESP32
+  board: esp32-poe
+
+external_components:
+  - source: github:/aguglie/esphome-rp6000@main
+
+web_server:
+  port: 80
+  ota: false
+
+ota:
+  password: ""
+
+api:
+  reboot_timeout: "0s"
+
+wifi:
+  ssid: <YOUR_SSID>
+  password: <YOUR_PASSWORD>
+
+logger:
+  level: info
+
+uart:
+  - id: uart_bus
+    tx_pin: 4
+    rx_pin: 36
+    baud_rate: 2400
+
+rp6000:
+  - uart_id: uart_bus
+    id: inverter
+
+sensor:
+  - platform: rp6000
+    rp6000_id: inverter
+    grid_voltage:
+      name: "Inverter: Input Voltage"
+    grid_frequency:
+      name: "Inverter: Input Frequency"
+    out_voltage:
+      name: "Inverter: Out Voltage"
+    out_frequency:
+      name: "Inverter: Out Frequency"
+    battery_voltage:
+      name: "Inverter: Battery Voltage"
+    battery_charge_current:
+      name: "Inverter: Battery Charge Current (48v)"
+    power_volt_ampere:
+      name: "Inverter: Output Power (VA)"
+    power_watt:
+      name: "Inverter: Output Power (Watt)"
+    load_percentage:
+      name: "Inverter: Load Percentage"
+    temperature:
+      name: "Inverter: Temperature"
+
+output:
+  - platform: rp6000
+    rp6000_id: inverter
+    current_max_charging_current:
+      id: max_charging_current
+    output_source_priority:
+      id: output_source_priority
+
+number:
+  - platform: template
+    name: "Inverter: Battery Max Charging Current (48v)"
+    id: max_charging_current_input
+    optimistic: true
+    min_value: 0
+    max_value: 50
+    step: 1
+    on_value:
+      then:
+        - output.rp6000.set_level:
+            id: max_charging_current
+            value: !lambda "return x;"
+
+select:
+  - platform: template
+    name: "Inverter: Output Source Priority"
+    id: output_source_priority_input
+    restore_value: true
+    optimistic: true
+    options:
+      - UTI (Grid First)
+      - SBU (Battery First)
+    set_action:
+      - output.rp6000.set_level:
+          id: output_source_priority
+          value: !lambda |-
+            if (x == "UTI (Grid First)") {
+              return 0;
+            } else if (x == "SBU (Battery First)") {
+              return 1;
+            } else {
+              return 0;
+            }
