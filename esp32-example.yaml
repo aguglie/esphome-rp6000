@@ -4,7 +4,7 @@ esphome:
   board: esp32-poe
 
 external_components:
-  - source: github:/aguglie/esphome-rp6000@main
+  - source: github://aguglie/esphome-rp6000@main
 
 web_server:
   port: 80

@@ -1,6 +1,6 @@
-# esphome-rp6000
+# ESPHome RP6000 Inverter Component
 
-ESPhome library to monitor and (partially) control a RP6000 inverter (known as 'bestione arancione') via RS485.
+ESPHome library to monitor and (partially) control a RP6000 inverter (known as 'bestione arancione') via RS485.
 
 
 ## Requirements
