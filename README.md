@@ -98,10 +98,6 @@ uart:
 We welcome contributions! Please submit pull requests, report issues, or suggest improvements on our GitHub repository. Follow our coding standards and PR process outlined in the contributing guide.
 
 
-## License
-This project is licensed under the MIT License.
-
-
 ## Disclaimer
 This project is not affiliated with or endorsed by the manufacturer of the RP6000 inverter. Use at your own risk.
 
