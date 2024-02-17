@@ -2,6 +2,12 @@
 
 ESPHome library to monitor and (partially) control a RP6000 inverter (known as 'bestione arancione') via RS485.
 
+This project was tested with a 48v 6kW inverter. It may work with other models, but it has not been tested.
+
+## Disclaimer
+Working with high voltage can be dangerous. If you are not confident in your ability to work with high voltage, consult a professional electrician.
+
+**The author is not responsible for any damage or injury caused by the use of this software. Use at your own risk.**
 
 ## Requirements
 * RS485-to-TTL module
