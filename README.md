@@ -2,12 +2,13 @@
 
 ESPhome library to monitor and (partially) control a RP6000 inverter (known as 'bestione arancione') via RS485.
 
+
 ## Requirements
 * RS485-to-TTL module
 * ESP8266 or ESP32 (tested on ESP32)
 
-## Schematics
 
+## Schematics
 Below is the connection schematic for the RP6000 inverter to an ESP32 or ESP8266 via an RS485-to-TTL module. 
 
 
@@ -22,7 +23,8 @@ Below is the connection schematic for the RP6000 inverter to an ESP32 or ESP8266
 └──────────┘              └──────────┘                └─────────┘
 ```
 
-### RJ45 Connection
+
+## RJ45 Connection
 Your inverter's documentation should specify the RS485 communication pins. Here is the pinout for the tested version of the RP6000 inverter:
 
 ```
@@ -38,8 +40,8 @@ Your inverter's documentation should specify the RS485 communication pins. Here 
 8. GND (not used in this project)
 ```
 
-## Installation and example usage
 
+## Installation and example usage
 Start with `esp32-example.yaml` for your configuration. Adapt the file to your specific setup and WiFi settings.
 In the provided example, the RS485<>TTL is connected to the pins 4 and 36.
 
@@ -56,11 +58,12 @@ esphome run esp32-example.yaml
 
 Take a look at the [official documentation of the component](https://esphome.io/components/pipsolar.html) for additional details.
 
+
 ## Known issues
 Commands issued to the inverter receive an 'ACK' response, but the buffer may not clear properly, causing subsequent messages to be scrambled. Contributions to investigate and fix this issue are welcome!
 
-## Debugging
 
+## Debugging
 If this component doesn't work out of the box for your device please update your configuration to enable the debug output of the UART component and increase the log level to the see outgoing and incoming serial traffic:
 
 
@@ -84,14 +87,18 @@ uart:
       - lambda: UARTDebug::log_string(direction, bytes);
 ```
 
-# Contributing
+
+## Contributing
 We welcome contributions! Please submit pull requests, report issues, or suggest improvements on our GitHub repository. Follow our coding standards and PR process outlined in the contributing guide.
 
-# License
+
+## License
 This project is licensed under the MIT License.
 
-# Disclaimer
+
+## Disclaimer
 This project is not affiliated with or endorsed by the manufacturer of the RP6000 inverter. Use at your own risk.
 
-# References
+
+## References
 * [esphome-pipsolar](https://github.com/syssi/esphome-pipsolar) their project was used as a blueprint for this one.
