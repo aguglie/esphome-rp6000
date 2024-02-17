@@ -62,7 +62,7 @@ esphome run esp32-example.yaml
 ```
 
 
-Take a look at the [official documentation of the component](https://esphome.io/components/pipsolar.html) for additional details.
+Take a look at the [official documentation of the component](https://esphome.io) for additional details.
 
 
 ## Known issues
