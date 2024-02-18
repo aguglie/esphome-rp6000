@@ -66,8 +66,8 @@ Take a look at the [official documentation of the component](https://esphome.io)
 
 
 ## Known issues
-Commands issued to the inverter receive an 'ACK' response, but the buffer may not clear properly, causing subsequent messages to be scrambled. Contributions to investigate and fix this issue are welcome!
-
+ - Commands issued to the inverter receive an 'ACK' response, but the buffer may not clear properly, causing subsequent messages to be scrambled. Contributions to investigate and fix this issue are welcome!
+ - The enable pin for the TTL<>RS485 module is [hardwired to pin 5](https://github.com/aguglie/esphome-rp6000/blob/6bfd3fb8c1b137eb3172981fe270daa8e163b02d/components/rp6000/rp6000.h#L19 )
 
 ## Debugging
 If this component doesn't work out of the box for your device please update your configuration to enable the debug output of the UART component and increase the log level to the see outgoing and incoming serial traffic:
