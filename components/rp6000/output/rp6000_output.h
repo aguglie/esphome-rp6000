@@ -33,13 +33,43 @@ namespace esphome
           }
 
           std::vector<uint8_t> inverter_reply;
-          if (!this->parent_->read_line(inverter_reply))
+          if (!this->parent_->read_line(inverter_reply, 100, false))
           {
+              this->parent_->finish_transaction();
               ESP_LOGE(TAG, "No reply from inverter");
               return;
           }
 
-          // TODO: check reply to be 'ACK'
+          ESP_LOGD(TAG, "Got command reply from inverter: %s", format_hex_pretty(inverter_reply).c_str());
+
+          // The inverter can send a pending status frame before the ACK. Keep the
+          // transaction locked and consume the following line without sending
+          // another command.
+          if (this->parent_->is_status_reply(inverter_reply))
+          {
+            ESP_LOGD(TAG, "Status frame received before command ACK, waiting for the next reply");
+            inverter_reply.clear();
+
+            if (!this->parent_->read_line(inverter_reply, 1000, false))
+            {
+              this->parent_->finish_transaction();
+              ESP_LOGE(TAG, "No ACK received from inverter");
+              return;
+            }
+
+            ESP_LOGD(TAG, "Got follow-up command reply from inverter: %s", format_hex_pretty(inverter_reply).c_str());
+          }
+
+          this->parent_->finish_transaction();
+
+          if (this->parent_->is_ack_reply(inverter_reply))
+          {
+            ESP_LOGI(TAG, "Inverter acknowledged command: %s", tmp);
+          }
+          else
+          {
+            ESP_LOGW(TAG, "Unexpected reply to command %s: %s", tmp, format_hex_pretty(inverter_reply).c_str());
+          }
         }
         else
         {

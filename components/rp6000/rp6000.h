@@ -37,6 +37,18 @@ namespace esphome
 
                 ESP_LOGD(TAG, "Got status reply from inverter: %s", format_hex_pretty(inverter_reply).c_str());
 
+                if (this->is_ack_reply(inverter_reply))
+                {
+                    ESP_LOGW(TAG, "Received a command ACK while waiting for the status reply, skipping it");
+                    return;
+                }
+
+                if (inverter_reply.empty() || inverter_reply.front() != '(')
+                {
+                    ESP_LOGE(TAG, "Invalid status reply start: %s", format_hex_pretty(inverter_reply).c_str());
+                    return;
+                }
+
                 inverter_reply.erase(inverter_reply.begin());
 
                 std::vector<std::vector<uint8_t>> parts;
@@ -158,46 +170,75 @@ namespace esphome
                 }
             }
 
-            bool read_line(std::vector<uint8_t> &reply, uint16_t timeout = 100)
+            bool read_line(std::vector<uint8_t> &reply, uint16_t timeout = 100, bool release_lock = true)
             {
-                uint32_t start_at = millis();
-                while (millis() - start_at < timeout && !this->available())
-                {
-                }
-
-                if (!this->available())
-                {
-                    ESP_LOGW(TAG, "Timeout while waiting for data");
-                    this->reply_pending_mutex_.unlock();
-                    return false;
-                }
-
+                uint32_t last_activity_at = millis();
                 uint8_t data;
 
-                while (this->available() > 0)
+                while (millis() - last_activity_at < timeout)
                 {
+                    if (!this->available())
+                    {
+                        delay(1);
+                        continue;
+                    }
+
                     this->read_byte(&data);
+                    last_activity_at = millis();
 
                     if (data == '\n' || data == '\r')
                     {
-                        // Consume any leftover data
-                        while (this->available() > 0)
+                        // Ignore a leftover line ending from the previous CR/LF pair.
+                        if (reply.empty())
                         {
-                            this->read_byte(&data);
+                            continue;
                         }
-                        
-                        this->reply_pending_mutex_.unlock();
+
+                        if (release_lock)
+                        {
+                            this->reply_pending_mutex_.unlock();
+                        }
                         return true;
                     }
 
                     reply.push_back(data);
                 }
 
-                ESP_LOGW(TAG, "Invalid data read from inverter: %s", format_hex_pretty(reply).c_str());
+                if (reply.empty())
+                {
+                    ESP_LOGW(TAG, "Timeout while waiting for data");
+                }
+                else
+                {
+                    ESP_LOGW(TAG, "Timeout while reading inverter reply: %s", format_hex_pretty(reply).c_str());
+                }
 
                 reply.clear();
-                this->reply_pending_mutex_.unlock();
+                if (release_lock)
+                {
+                    this->reply_pending_mutex_.unlock();
+                }
                 return false;
+            }
+
+            void finish_transaction()
+            {
+                this->reply_pending_mutex_.unlock();
+            }
+
+            bool is_ack_reply(const std::vector<uint8_t> &reply)
+            {
+                size_t offset = !reply.empty() && reply.front() == '(' ? 1 : 0;
+
+                return reply.size() == offset + 3 &&
+                       reply[offset] == 'A' &&
+                       reply[offset + 1] == 'C' &&
+                       reply[offset + 2] == 'K';
+            }
+
+            bool is_status_reply(const std::vector<uint8_t> &reply)
+            {
+                return !reply.empty() && reply.front() == '(';
             }
 
             bool split_line(std::vector<uint8_t> &reply, std::vector<std::vector<uint8_t>> &parts, char delimiter = ' ')
