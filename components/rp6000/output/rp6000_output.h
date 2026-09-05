@@ -16,66 +16,36 @@ namespace esphome
       void set_parent(RP6000 *parent) { this->parent_ = parent; }
       void set_set_command(const std::string &command) { this->set_command_ = command; };
       void set_possible_values(std::vector<float> possible_values) { this->possible_values_ = std::move(possible_values); }
-      void set_value(float value) { this->write_state(value); };
+      void set_value(float value) { this->write_state(value); }
+      void set_ack_callback(std::function<void(float)> callback) { ack_callback_ = std::move(callback); }
+      bool is_pending() const { return pending_; }
+      float get_confirmed_value() const { return confirmed_value_; }
 
     protected:
-      void write_state(float state) override
-      {
-        char tmp[10];
-        sprintf(tmp, this->set_command_.c_str(), state);
-
-        if (std::find(this->possible_values_.begin(), this->possible_values_.end(), state) != this->possible_values_.end())
-        {
-          ESP_LOGD(TAG, "Will write: %s out of value %f / %02.0f", tmp, state, state);
-          if (!this->parent_->write_line(tmp)){
-            ESP_LOGE(TAG, "Failed to issue command to inverter");
-            return;
-          }
-
-          std::vector<uint8_t> inverter_reply;
-          if (!this->parent_->read_line(inverter_reply, 100, false))
-          {
-              this->parent_->finish_transaction();
-              ESP_LOGE(TAG, "No reply from inverter");
-              return;
-          }
-
-          ESP_LOGD(TAG, "Got command reply from inverter: %s", format_hex_pretty(inverter_reply).c_str());
-
-          // The inverter can send a pending status frame before the ACK. Keep the
-          // transaction locked and consume the following line without sending
-          // another command.
-          if (this->parent_->is_status_reply(inverter_reply))
-          {
-            ESP_LOGD(TAG, "Status frame received before command ACK, waiting for the next reply");
-            inverter_reply.clear();
-
-            if (!this->parent_->read_line(inverter_reply, 1000, false))
-            {
-              this->parent_->finish_transaction();
-              ESP_LOGE(TAG, "No ACK received from inverter");
-              return;
-            }
-
-            ESP_LOGD(TAG, "Got follow-up command reply from inverter: %s", format_hex_pretty(inverter_reply).c_str());
-          }
-
-          this->parent_->finish_transaction();
-
-          if (this->parent_->is_ack_reply(inverter_reply))
-          {
-            ESP_LOGI(TAG, "Inverter acknowledged command: %s", tmp);
-          }
-          else
-          {
-            ESP_LOGW(TAG, "Unexpected reply to command %s: %s", tmp, format_hex_pretty(inverter_reply).c_str());
-          }
+      void write_state(float state) override {
+        if (!std::isfinite(state) || std::find(possible_values_.begin(), possible_values_.end(), state) == possible_values_.end()) {
+          ESP_LOGE(TAG, "Invalid output value: %f", state);
+          return;
         }
-        else
-        {
-          ESP_LOGE(TAG, "Will not write: %s as it is not in list of allowed values", tmp);
-        }
+        char command[32];
+        const int length = snprintf(command, sizeof(command), set_command_.c_str(), state);
+        if (length < 0 || static_cast<size_t>(length) >= sizeof(command)) return;
+        const uint32_t generation = ++generation_;
+        pending_ = true;
+        if (!parent_->queue_command(set_command_, command, [this, state, generation](bool accepted) {
+          if (generation == generation_) pending_ = false;
+          if (accepted) {
+            confirmed_value_ = state;
+            if (ack_callback_) ack_callback_(state);
+          } else {
+            ESP_LOGW(TAG, "Output value %.0f was not confirmed", state);
+          }
+        })) pending_ = false;
       }
+      std::function<void(float)> ack_callback_;
+      float confirmed_value_ = NAN;
+      bool pending_ = false;
+      uint32_t generation_ = 0;
       std::string set_command_;
       RP6000 *parent_;
       std::vector<float> possible_values_;

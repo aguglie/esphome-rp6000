@@ -66,7 +66,7 @@ Take a look at the [official documentation of the component](https://esphome.io)
 
 
 ## Known issues
- - Commands issued to the inverter receive an 'ACK' response, but the buffer may not clear properly, causing subsequent messages to be scrambled. Contributions to investigate and fix this issue are welcome!
+ - GPIO5 still controls the RS485 transmitter and requires the existing Arduino-compatible GPIO API.
  - The enable pin for the TTL<>RS485 module is [hardwired to pin 5](https://github.com/aguglie/esphome-rp6000/blob/6bfd3fb8c1b137eb3172981fe270daa8e163b02d/components/rp6000/rp6000.h#L19 )
 
 ## Debugging

@@ -3,7 +3,7 @@
 #include "esphome/core/component.h"
 #include "../rp6000.h"
 
-#define TAG "RP6000_Sensor"
+
 
 namespace esphome
 {
@@ -17,9 +17,14 @@ namespace esphome
             {
             }
 
-            void update() override
+            void setup() override {
+                this->parent->add_on_status_callback([this]() { this->publish_status_(); });
+            }
+
+            void update() override { this->parent->updateStatus(); }
+
+            void publish_status_()
             {
-                this->parent->updateStatus();
                 
                 if (this->grid_voltage_sensor_ != nullptr){
                     this->grid_voltage_sensor_->publish_state(this->parent->grid_voltage);
